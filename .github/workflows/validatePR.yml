@@ -50,7 +50,7 @@ jobs:
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
 
-      # Install yarn (if not already installed)
+      # Install yarn
       - name: Install yarn
         run: npm install -g yarn
 
@@ -58,9 +58,9 @@ jobs:
       - name: Clear yarn cache
         run: yarn cache clean
 
-      # Install SFDX scanner plugin using npm instead of yarn
+      # Install SFDX scanner plugin
       - name: Install SFDX scanner plugin
-        run: sfdx plugins:install @salesforce/sfdx-scanner --npm
+        run: sfdx plugins:install @salesforce/sfdx-scanner
 
       # Install sfdx-git-delta plugin
       - name: Install sfdx git delta
