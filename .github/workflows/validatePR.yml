@@ -2,7 +2,19 @@
 name: Validate PR on main branch
  
 # Definition when the workflow should run
+# Unique name for this workflow
+name: Validate PR on main branch
+ 
+# Definition when the workflow should run
 on:
+  # The workflow will run whenever an event happens on a pull request
+  pull_request:
+    # The events are that a PR is opened, or when a commit is pushed
+    # to a branch that has an existing pull request
+    types: [opened, synchronize]
+    # The branches filter allows to specify that this workflow should only
+    # run if the branch name is "main". This way we prevent this workflow
+    # from running when PRs are opened on other branches
   # The workflow will run whenever an event happens on a pull request
   pull_request:
     # The events are that a PR is opened, or when a commit is pushed
@@ -20,6 +32,14 @@ on:
       - 'force-app/**'
             
 # Jobs to be executed when the above conditions are met
+      - mail
+    # We only care about changes to the force-app directory, which is the
+    # root directory of the sfdx project. This prevents the job from running
+    # when changing non-salesforce files (like this yml file).
+    paths:
+      - 'force-app/**'
+            
+# Jobs to be executed when the above conditions are met
 jobs:
   # This is the name of the job. You can give it whatever name you want
   validate-deployment-on-main-org:
@@ -27,7 +47,14 @@ jobs:
     # can specify which OS this VM should run on.
     # In this case, we are going to run our commands on the latest version
     # of Ubuntu
+  # This is the name of the job. You can give it whatever name you want
+  validate-deployment-on-main-org:
+    # As mentioned in the blog post, this job runs inside a VM. Here we
+    # can specify which OS this VM should run on.
+    # In this case, we are going to run our commands on the latest version
+    # of Ubuntu
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       # Now we install nodejs in the VM, and specify version 14
