@@ -50,6 +50,18 @@ jobs:
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
           ~/sfdx/bin/sfdx version
 
+      # Install yarn (if not already installed)
+      - name: Install yarn
+        run: npm install -g yarn
+
+      # Clear yarn cache before installing the plugin
+      - name: Clear yarn cache
+        run: yarn cache clean
+
+      # Install SFDX scanner plugin using npm instead of yarn
+      - name: Install SFDX scanner plugin
+        run: sfdx plugins:install @salesforce/sfdx-scanner --npm
+
       # Install sfdx-git-delta plugin
       - name: Install sfdx git delta
         run: |
@@ -61,10 +73,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install default-jdk
-
-      # Install SFDX scanner
-      - name: Install SFDX scanner
-        run: sfdx plugins:install @salesforce/sfdx-scanner
 
       # Authenticate to Salesforce org
       - name: Authenticate to Salesforce Org
