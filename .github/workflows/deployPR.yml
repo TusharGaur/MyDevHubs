@@ -84,4 +84,3 @@ jobs:
       # Deploy destructive changes (if any)
       - name: 'Deploy destructive changes (if any)'
         run: sfdx force:mdapi:deploy -d "changed-sources/destructiveChanges" --ignorewarnings -u=${{ vars.SF_USERNAME }}
-
