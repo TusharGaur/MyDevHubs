@@ -20,10 +20,10 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }}
     
     steps:
-      # Install Node.js version 18.x (or a compatible version)
+      # Install Node.js version 20
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
+          node-version: '20'
 
       # Checkout source code with full history
       - name: Checkout source code
