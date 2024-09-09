@@ -36,10 +36,23 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          echo $PR_BODY > ./pr_body.txt
-          node ./parsePR.js
-          TESTS=$(cat testsToRun.txt)
-          echo "APEX_TESTS=$TESTS" >> $GITHUB_ENV
+          # Check if PR_BODY is null or empty
+          if [ -z "$PR_BODY" ]; then
+            # If PR_BODY is blank or null, set APEX_TESTS to null
+            echo "APEX_TESTS=null" >> $GITHUB_ENV
+          else
+            # If PR_BODY is not blank, write it to pr_body.txt and run the parser
+            echo "$PR_BODY" > ./pr_body.txt
+            node ./parsePR.js
+            TESTS=$(cat testsToRun.txt)
+            
+            # If the extracted tests are empty or null, set APEX_TESTS to null
+            if [ -z "$TESTS" ] || [ "$TESTS" = "null" ]; then
+              echo "APEX_TESTS=null" >> $GITHUB_ENV
+            else
+              echo "APEX_TESTS=$TESTS" >> $GITHUB_ENV
+            fi
+          fi
 
       # Install Salesforce CLI using npm
       - name: Install Salesforce CLI
@@ -82,22 +95,22 @@ jobs:
           mkdir changed-sources
           sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
 
-       # Check-only deploy without any test class validation
+      # Check-only deploy without any test class validation
       - name: 'Check-only deploy delta changes - no tests (blank or null APEX_TESTS)'
-        if: ${{ env.APEX_TESTS == '' || env.APEX_TESTS == null }}
+        if: ${{ env.APEX_TESTS == 'null' || env.APEX_TESTS == '' }}
         run: |
           sfdx force:source:deploy -p "changed-sources/force-app" --checkonly --json -u=${{ vars.SF_USERNAME }}
 
       # Check-only deploy for specified tests
       - name: 'Check-only deploy delta changes - run specified tests'
-        if:  ${{ env.APEX_TESTS != 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
+        if: ${{ env.APEX_TESTS != 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
         run: |
           echo ${{ env.APEX_TESTS }}
           sfdx force:source:deploy -p "changed-sources/force-app" --checkonly --testlevel RunSpecifiedTests --runtests ${{ env.APEX_TESTS }} --json -u=${{ vars.SF_USERNAME }}
 
       # Check-only deploy for all tests
       - name: 'Check-only deploy delta changes - run all tests'
-        if:  ${{ env.APEX_TESTS == 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
+        if: ${{ env.APEX_TESTS == 'all' }}
         run: |
           sfdx force:source:deploy -p "changed-sources/force-app" --checkonly --testlevel RunLocalTests --json -u=${{ vars.SF_USERNAME }}
 
