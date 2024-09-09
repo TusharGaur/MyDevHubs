@@ -68,6 +68,13 @@ jobs:
           mkdir changed-sources
           sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
 
+      # Check-only deploy without any test class validation
+      - name: 'Check-only deploy delta changes - no tests (blank or null APEX_TESTS)'
+        if: ${{ env.APEX_TESTS == '' || env.APEX_TESTS == null }}
+        run: |
+          sfdx force:source:deploy -p "changed-sources/force-app" --json -u=${{ vars.SF_USERNAME }}
+
+
       # Check-only deploy for specified tests
       - name: 'Check-only deploy delta changes - run specified tests'
         if: ${{ env.APEX_TESTS != 'all' }}
