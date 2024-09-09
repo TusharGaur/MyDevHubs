@@ -74,7 +74,7 @@ jobs:
       - name: Authenticate to Salesforce Org
         run: |
           echo "${{ vars.SALESFORCE_JWT_SECRET_KEY }}" > server.key
-          sfdx auth:jwt:grant -u ${{ vars.SF_USERNAME }} -f server.key -i ${{ vars.SF_CLIENT_ID }} -r ${{ vars.HUB_LOGIN_URL }}
+          sfdx force:auth:jwt:grant -u ${{ vars.SF_USERNAME }} -f server.key -i ${{ vars.SF_CLIENT_ID }} -r ${{ vars.HUB_LOGIN_URL }}
 
       # Create delta packages for changed metadata
       - name: Create delta packages for new, modified, or deleted metadata
