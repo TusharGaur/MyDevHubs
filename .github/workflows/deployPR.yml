@@ -1,16 +1,16 @@
 # Unique name for this workflow
-name: Deploy PR on UAT branch
+name: Deploy PR on main branch
 
 # Definition when the workflow should run
 on:
   push:
-    branches: [uat]
+    branches: [main]
     paths:
       - 'force-app/**'
 
 # Jobs to be executed when the above conditions are met
 jobs:
-  deployment-on-uat-org:
+  deployment-on-main-org:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
     
@@ -26,6 +26,29 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      
+      # Read PR body and extract tests to run
+      - name: Read PR Body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # Check if PR_BODY is null or empty
+          if [ -z "$PR_BODY" ]; then
+            # If PR_BODY is blank or null, set APEX_TESTS to null
+            echo "APEX_TESTS=null" >> $GITHUB_ENV
+          else
+            # If PR_BODY is not blank, write it to pr_body.txt and run the parser
+            echo "$PR_BODY" > ./pr_body.txt
+            node ./parsePR.js
+            TESTS=$(cat testsToRun.txt)
+            
+            # If the extracted tests are empty or null, set APEX_TESTS to null
+            if [ -z "$TESTS" ] || [ "$TESTS" = "null" ]; then
+              echo "APEX_TESTS=null" >> $GITHUB_ENV
+            else
+              echo "APEX_TESTS=$TESTS" >> $GITHUB_ENV
+            fi
+          fi
 
       # Install Salesforce CLI using npm
       - name: Install Salesforce CLI
@@ -74,7 +97,6 @@ jobs:
         run: |
           sfdx force:source:deploy -p "changed-sources/force-app" --json -u=${{ vars.SF_USERNAME }}
 
-
       # Check-only deploy for specified tests
       - name: 'Check-only deploy delta changes - run specified tests'
         if:  ${{ env.APEX_TESTS != 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
@@ -86,7 +108,7 @@ jobs:
       - name: 'Check-only deploy delta changes - run all tests'
         if:  ${{ env.APEX_TESTS == 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
         run: |
-            sfdx force:source:deploy -p "changed-sources/force-app" --testlevel RunLocalTests --json -u=${{ vars.SF_USERNAME }}
+          sfdx force:source:deploy -p "changed-sources/force-app" --testlevel RunLocalTests --json -u=${{ vars.SF_USERNAME }}
 
       # Deploy destructive changes (if any)
       - name: 'Deploy destructive changes (if any)'
