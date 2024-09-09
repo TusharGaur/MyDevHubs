@@ -1,0 +1,86 @@
+# Unique name for this workflow
+name: Deploy PR on UAT branch
+
+# Definition when the workflow should run
+on:
+  push:
+    branches: [uat]
+    paths:
+      - 'force-app/**'
+
+# Jobs to be executed when the above conditions are met
+jobs:
+  deployment-on-uat-org:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    
+    steps:
+      # Install Node.js version 20
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Checkout source code with full history
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Install Salesforce CLI using npm
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g sfdx-cli
+
+      # Install yarn
+      - name: Install yarn
+        run: npm install -g yarn
+
+      # Clear yarn cache before installing the plugin
+      - name: Clear yarn cache
+        run: yarn cache clean
+
+      # Install SFDX scanner plugin
+      - name: Install SFDX scanner plugin
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      # Install sfdx-git-delta plugin
+      - name: Install sfdx git delta
+        run: |
+          echo y | sfdx plugins:install sfdx-git-delta
+          sfdx plugins
+
+      # Install Java (required for SFDX scanner)
+      - name: Install Java
+        run: |
+          sudo apt-get update
+          sudo apt install -y default-jdk
+
+      # Authenticate to Salesforce org
+      - name: Authenticate to Salesforce Org
+        run: |
+          echo "${{ vars.SALESFORCE_JWT_SECRET_KEY }}" > server.key
+          sfdx auth:jwt:grant -u=${{ vars.SF_USERNAME }} -f=server.key -i=${{ vars.SF_CLIENT_ID }} -r=${{ vars.HUB_LOGIN_URL }}
+
+      # Create delta packages for changed metadata
+      - name: Create delta packages for new, modified, or deleted metadata
+        run: |
+          mkdir changed-sources
+          sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
+
+      # Check-only deploy for specified tests
+      - name: 'Check-only deploy delta changes - run specified tests'
+        if: ${{ env.APEX_TESTS != 'all' }}
+        run: |
+          echo ${{ env.APEX_TESTS }}
+          sfdx force:source:deploy -p "changed-sources/force-app" --testlevel RunSpecifiedTests --runtests ${{ env.APEX_TESTS }} --json -u=${{ vars.SF_USERNAME }}
+
+      # Check-only deploy for all tests
+      - name: 'Check-only deploy delta changes - run all tests'
+        if: ${{ env.APEX_TESTS == 'all' }}
+        run: |
+            sfdx force:source:deploy -p "changed-sources/force-app" --testlevel RunLocalTests --json -u=${{ vars.SF_USERNAME }}
+
+      # Deploy destructive changes (if any)
+      - name: 'Deploy destructive changes (if any)'
+        run: sfdx force:mdapi:deploy -d "changed-sources/destructiveChanges" --ignorewarnings -u=${{ vars.SF_USERNAME }}
