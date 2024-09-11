@@ -110,7 +110,7 @@ jobs:
 
       # Check-only deploy for all tests
       - name: 'Check-only deploy delta changes - run all tests'
-        if: ${{ env.APEX_TESTS == 'all' && env.APEX_TESTS != 'null' && env.APEX_TESTS != '' }}
+        if: ${{ env.APEX_TESTS == 'all' }}
         run: |
           sfdx force:source:deploy -p "changed-sources/force-app" --checkonly --testlevel RunLocalTests --json -u=${{ vars.SF_USERNAME }}
 
