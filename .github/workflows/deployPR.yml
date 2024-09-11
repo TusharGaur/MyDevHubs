@@ -93,7 +93,7 @@ jobs:
 
       # Check-only deploy without any test class validation
       - name: 'Check-only deploy delta changes - no tests (blank or null APEX_TESTS)'
-        if: ${{ env.APEX_TESTS == '' || env.APEX_TESTS == null }}
+        if: ${{ env.APEX_TESTS == '' || env.APEX_TESTS == 'null' }}
         run: |
           sfdx force:source:deploy -p "changed-sources/force-app" --json -u=${{ vars.SF_USERNAME }}
 
